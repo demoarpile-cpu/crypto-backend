@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const generateOtp = require('../utils/generateOtp');
 const { sendEmail, sendPasswordChangeEmail } = require('../utils/sendEmail');
@@ -162,8 +162,11 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('LOGIN_SERVER_ERROR:', error);
+        res.status(500).json({ 
+            message: 'Server error during login process', 
+            error: error.message 
+        });
     }
 };
 
