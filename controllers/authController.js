@@ -165,7 +165,8 @@ const login = async (req, res) => {
         console.error('LOGIN_SERVER_ERROR:', error);
         res.status(500).json({ 
             message: 'Server error during login process', 
-            error: error.message 
+            error: error.message || 'No error message available',
+            details: JSON.stringify(error, Object.getOwnPropertyNames(error))
         });
     }
 };
