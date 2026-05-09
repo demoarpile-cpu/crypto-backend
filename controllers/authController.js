@@ -232,7 +232,13 @@ const forgotPassword = async (req, res) => {
 
     } catch (error) {
         console.error('FORGOT_PASS_ERROR:', error);
-        res.status(500).json({ message: 'Recovery process failed' });
+        if (error.code === 'ECONNREFUSED' || error.command === 'CONN') {
+            return res.status(500).json({ message: 'Database connection failed' });
+        }
+        if (error.responseCode || error.command === 'SEND') {
+            return res.status(500).json({ message: 'Email delivery failed. Please check SMTP credentials on Railway.' });
+        }
+        res.status(500).json({ message: 'Recovery process failed: ' + error.message });
     }
 };
 
@@ -285,7 +291,7 @@ const resetPassword = async (req, res) => {
 
     } catch (error) {
         console.error('RESET_PASS_ERROR:', error);
-        res.status(500).json({ message: 'Password reset failed' });
+        res.status(500).json({ message: 'Password reset failed: ' + error.message });
     }
 };
 
