@@ -310,6 +310,43 @@ const getProfile = async (req, res) => {
     }
 };
 
+// @desc    Change password
+// @route   POST /api/change-password
+// @access  Private
+const changePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        const [users] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const user = users[0];
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid current password' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        await pool.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+
+        // Send Confirmation Email
+        await sendEmail({
+            email: user.email,
+            subject: 'Security Alert: Password Successfully Updated',
+            template: 'PASSWORD_CHANGED',
+            name: user.full_name
+        });
+
+        res.json({ message: 'Password changed successfully' });
+
+    } catch (error) {
+        console.error('CHANGE_PASS_ERROR:', error);
+        res.status(500).json({ message: 'Password change failed' });
+    }
+};
+
 module.exports = {
     register,
     verifyOtp,
@@ -317,5 +354,6 @@ module.exports = {
     login,
     forgotPassword,
     resetPassword,
+    changePassword,
     getProfile
 };
