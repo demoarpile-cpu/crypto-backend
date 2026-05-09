@@ -10,6 +10,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
+app.set('trust proxy', 1); // Trust Railway proxy
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
     cors: {
