@@ -11,64 +11,167 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+const commonStyles = `
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #050706;
+    color: #ffffff;
+    padding: 40px;
+    border-radius: 24px;
+    border: 1px solid rgba(201, 162, 39, 0.2);
+    max-width: 600px;
+    margin: 20px auto;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+`;
+
+const headerStyle = `
+    text-align: center;
+    margin-bottom: 40px;
+`;
+
+const otpBoxStyle = `
+    background: linear-gradient(135deg, rgba(201, 162, 39, 0.1) 0%, rgba(201, 162, 39, 0.05) 100%);
+    padding: 40px;
+    border-radius: 20px;
+    border: 1px solid rgba(201, 162, 39, 0.3);
+    text-align: center;
+    margin: 30px 0;
+`;
+
+const otpTextStyle = `
+    font-size: 48px;
+    font-weight: 800;
+    color: #c9a227;
+    letter-spacing: 12px;
+    margin: 0;
+    text-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
+`;
+
+const footerStyle = `
+    margin-top: 40px;
+    text-align: center;
+    border-top: 1px solid rgba(201, 162, 39, 0.1);
+    padding-top: 30px;
+`;
+
+const buttonStyle = `
+    display: inline-block;
+    padding: 16px 32px;
+    background: linear-gradient(135deg, #c9a227 0%, #a3811c 100%);
+    color: #000000;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 14px;
+    margin: 20px 0;
+`;
+
 const sendEmail = async (options) => {
+    let content = '';
+
+    switch (options.template) {
+        case 'WELCOME_OTP':
+            content = `
+                <div style="${headerStyle}">
+                    <h1 style="color: #c9a227; text-transform: uppercase; letter-spacing: 4px; font-size: 28px;">Welcome to Protocol</h1>
+                </div>
+                <div style="background-color: rgba(255,255,255,0.02); padding: 30px; border-radius: 16px;">
+                    <p style="font-size: 16px; color: rgba(255,255,255,0.8);">Hello ${options.name || 'User'},</p>
+                    <p style="font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.6);">
+                        Thank you for joining the Trade Crypto network. To activate your secure access and start your journey, please verify your identity using the authorization key below.
+                    </p>
+                    <div style="${otpBoxStyle}">
+                        <p style="font-size: 12px; color: rgba(201, 162, 39, 0.6); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">Your Authorization Key</p>
+                        <h2 style="${otpTextStyle}">${options.otp}</h2>
+                    </div>
+                    <p style="font-size: 12px; color: #ff4444; text-align: center;">This key will expire in 5 minutes for security purposes.</p>
+                </div>
+            `;
+            break;
+
+        case 'FORGOT_PASSWORD':
+            content = `
+                <div style="${headerStyle}">
+                    <h1 style="color: #c9a227; text-transform: uppercase; letter-spacing: 4px; font-size: 28px;">Password Recovery</h1>
+                </div>
+                <div style="background-color: rgba(255,255,255,0.02); padding: 30px; border-radius: 16px;">
+                    <p style="font-size: 16px; color: rgba(255,255,255,0.8);">Password Reset Requested</p>
+                    <p style="font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.6);">
+                        We received a request to reset your Protocol password. If you didn't make this request, please secure your account immediately.
+                    </p>
+                    <div style="${otpBoxStyle}">
+                        <p style="font-size: 12px; color: rgba(201, 162, 39, 0.6); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">Reset Authorization Code</p>
+                        <h2 style="${otpTextStyle}">${options.otp}</h2>
+                    </div>
+                    <p style="font-size: 12px; color: rgba(255,255,255,0.4); text-align: center;">Valid for 10 minutes only.</p>
+                </div>
+            `;
+            break;
+
+        case 'PASSWORD_CHANGED':
+            content = `
+                <div style="${headerStyle}">
+                    <h1 style="color: #00ff88; text-transform: uppercase; letter-spacing: 4px; font-size: 28px;">Security Update</h1>
+                </div>
+                <div style="background-color: rgba(255,255,255,0.02); padding: 30px; border-radius: 16px; text-align: center;">
+                    <div style="width: 60px; hieght: 60px; background: rgba(0, 255, 136, 0.1); border-radius: 50%; display: inline-block; padding: 20px; margin-bottom: 20px;">
+                        <span style="font-size: 30px;">🛡️</span>
+                    </div>
+                    <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 15px;">Password Successfully Reset</h2>
+                    <p style="font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.6);">
+                        Your account password has been successfully updated. If you did not perform this action, please contact our emergency response team immediately.
+                    </p>
+                    <a href="${process.env.FRONTEND_URL}/login" style="${buttonStyle}">Access Dashboard</a>
+                </div>
+            `;
+            break;
+
+        default:
+            content = options.html || `<p>${options.message}</p>`;
+    }
+
     const html = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a1a15; color: #ffffff; padding: 40px; border-radius: 20px; border: 1px solid #c9a227; max-width: 600px; margin: auto;">
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #c9a227; letter-spacing: 5px; text-transform: uppercase; font-size: 24px;">Security Protocol</h1>
-        </div>
-        <div style="background-color: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; border: 1px solid rgba(201,162,39,0.2);">
-            <p style="font-size: 16px; line-height: 1.6; color: #ffffff; text-align: center;">Your unique access key for verification is:</p>
-            <div style="text-align: center; margin: 30px 0;">
-                <span style="font-size: 42px; font-weight: bold; color: #c9a227; letter-spacing: 15px; background: rgba(201,162,39,0.1); padding: 15px 30px; border-radius: 10px;">${options.otp}</span>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #000000;">
+            <div style="${commonStyles}">
+                <div style="text-align: left; margin-bottom: 40px;">
+                    <span style="color: #c9a227; font-weight: 900; letter-spacing: 5px; font-size: 20px;">TRADE CRYPTO</span>
+                </div>
+                ${content}
+                <div style="${footerStyle}">
+                    <p style="font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px;">
+                        Advanced Cryptographic Environment • AES-256 Encrypted
+                    </p>
+                    <p style="font-size: 10px; color: rgba(201, 162, 39, 0.4); margin-top: 10px;">
+                        © 2026 Trade Balance Network. All Rights Reserved.
+                    </p>
+                </div>
             </div>
-            <p style="font-size: 12px; color: rgba(255,255,255,0.5); text-align: center;">This code will expire in 5 minutes. Do not share this key.</p>
-        </div>
-        <div style="margin-top: 30px; text-align: center; border-top: 1px solid rgba(201,162,39,0.2); padding-top: 20px;">
-            <p style="font-size: 10px; color: #c9a227; text-transform: uppercase; letter-spacing: 2px;">Trade Balance Network • AES-256 Encrypted</p>
-        </div>
-    </div>
+        </body>
+        </html>
     `;
 
     const mailOptions = {
-        from: `"${process.env.FROM_NAME}" <${process.env.SMTP_USER}>`,
+        from: `"${process.env.FROM_NAME || 'Trade Crypto'}" <${process.env.SMTP_USER}>`,
         to: options.email,
         subject: options.subject,
         html: html,
     };
 
-    return transporter.sendMail(mailOptions);
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Email sent successfully:', info.messageId);
+        return info;
+    } catch (error) {
+        console.error('Email delivery failed:', error);
+        throw error;
+    }
 };
 
-const sendPasswordChangeEmail = async (email, name) => {
-    const html = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a1a15; color: #ffffff; padding: 40px; border-radius: 20px; border: 1px solid #c9a227; max-width: 600px; margin: auto;">
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #c9a227; letter-spacing: 5px; text-transform: uppercase; font-size: 24px;">Security Alert</h1>
-        </div>
-        <div style="background-color: rgba(255,255,255,0.05); padding: 30px; border-radius: 15px; border: 1px solid rgba(201,162,39,0.2);">
-            <p style="font-size: 16px; line-height: 1.6; color: #ffffff;">Hello ${name},</p>
-            <p style="font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.8);">Your account password has been <strong>successfully changed</strong>. If you did not perform this action, please contact our security team immediately.</p>
-            <div style="text-align: center; margin: 30px 0;">
-                <div style="display: inline-block; padding: 10px 20px; background: rgba(0,255,0,0.1); border: 1px solid #00ff00; color: #00ff00; border-radius: 5px; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">
-                    Security Status: Secure
-                </div>
-            </div>
-        </div>
-        <div style="margin-top: 30px; text-align: center; border-top: 1px solid rgba(201,162,39,0.2); padding-top: 20px;">
-            <p style="font-size: 10px; color: #c9a227; text-transform: uppercase; letter-spacing: 2px;">Trade Balance Network • AES-256 Encrypted</p>
-        </div>
-    </div>
-    `;
-
-    const mailOptions = {
-        from: `"${process.env.FROM_NAME}" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: 'Security Alert: Password Changed',
-        html: html,
-    };
-
-    return transporter.sendMail(mailOptions);
-};
-
-module.exports = { sendEmail, sendPasswordChangeEmail };
+module.exports = { sendEmail };
