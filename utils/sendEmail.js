@@ -161,10 +161,11 @@ const sendEmail = async (options) => {
     `;
 
     const mailOptions = {
-        from: `"${process.env.FROM_NAME || 'Trade Crypto'}" <${process.env.SMTP_USER}>`,
+        from: `"${process.env.FROM_NAME || 'Trade Crypto'}" <${process.env.FROM_EMAIL || process.env.SMTP_USER}>`,
         to: options.email,
         subject: options.subject,
         html: html,
+        replyTo: process.env.FROM_EMAIL || process.env.SMTP_USER,
     };
 
     try {
