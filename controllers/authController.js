@@ -58,7 +58,11 @@ const register = async (req, res) => {
 
     } catch (error) {
         console.error('REGISTRATION_ERROR:', error);
-        res.status(500).json({ message: 'Internal server security error' });
+        res.status(500).json({ 
+            message: 'Internal server security error', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 
@@ -232,13 +236,10 @@ const forgotPassword = async (req, res) => {
 
     } catch (error) {
         console.error('FORGOT_PASS_ERROR:', error);
-        if (error.code === 'ECONNREFUSED' || error.command === 'CONN') {
-            return res.status(500).json({ message: 'Database connection failed' });
-        }
-        if (error.responseCode || error.command === 'SEND') {
-            return res.status(500).json({ message: 'Email delivery failed. Please check SMTP credentials on Railway.' });
-        }
-        res.status(500).json({ message: 'Recovery process failed: ' + error.message });
+        res.status(500).json({ 
+            message: 'Recovery process failed', 
+            error: error.message 
+        });
     }
 };
 

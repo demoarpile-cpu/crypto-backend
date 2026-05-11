@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
 require('dotenv').config();
 const { errorHandler } = require('./middleware/errorMiddleware');
 const authRoutes = require('./routes/authRoutes');
@@ -24,6 +25,7 @@ app.use(helmet()); // Security Headers
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev')); // Log requests to console
 
 // Rate Limiting
 const limiter = rateLimit({
