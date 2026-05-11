@@ -4,7 +4,7 @@ require('dotenv').config();
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT),
-    secure: parseInt(process.env.SMTP_PORT) === 465,
+    secure: parseInt(process.env.SMTP_PORT) === 465, // Only true for 465
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -13,9 +13,11 @@ const transporter = nodemailer.createTransport({
         rejectUnauthorized: false,
         minVersion: 'TLSv1.2'
     },
-    connectionTimeout: 25000,
-    greetingTimeout: 25000,
-    socketTimeout: 25000,
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    debug: true, // Enable debug output
+    logger: true  // Log to console
 });
 
 const commonStyles = `
