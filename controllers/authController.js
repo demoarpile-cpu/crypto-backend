@@ -21,35 +21,47 @@ const register = async (req, res) => {
 
     try {
         // 2. Check for existing user
-        const [existingUsers] = await pool.execute('SELECT id FROM users WHERE email = ?', [email]);
-        if (existingUsers.length > 0) {
-            return res.status(400).json({ message: 'Email already registered' });
-        }
-
-        // 3. Hash Password
-        const hashedPassword = await bcrypt.hash(password, 12);
+        const [existingUsers] = await pool.execute('SELECT id, is_verified FROM users WHERE email = ?', [email]);
         
-        // 4. Generate OTP
+        const hashedPassword = await bcrypt.hash(password, 12);
         const otp = generateOtp();
-        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
+        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
         const role = email.includes('admin') ? 'admin' : 'user';
 
-        // 5. Create User (Unverified)
-        await pool.execute(
-            'INSERT INTO users (full_name, telegram_id, email, password, is_verified, role, sponsor_id, phone, otp, otp_expiry) VALUES (?, ?, ?, ?, FALSE, ?, ?, ?, ?, ?)',
-            [full_name, username, email, hashedPassword, role, sponsor_id || 'SYSTEM', phone || null, otp, otpExpiry]
-        );
+        if (existingUsers.length > 0) {
+            const user = existingUsers[0];
+            if (user.is_verified) {
+                return res.status(400).json({ message: 'Email already registered and verified' });
+            }
+            
+            // If exists but not verified, update the existing record
+            await pool.execute(
+                'UPDATE users SET full_name = ?, telegram_id = ?, password = ?, role = ?, sponsor_id = ?, phone = ?, otp = ?, otp_expiry = ? WHERE id = ?',
+                [full_name, username, hashedPassword, role, sponsor_id || 'SYSTEM', phone || null, otp, otpExpiry, user.id]
+            );
+        } else {
+            // 5. Create User (New)
+            await pool.execute(
+                'INSERT INTO users (full_name, telegram_id, email, password, is_verified, role, sponsor_id, phone, otp, otp_expiry) VALUES (?, ?, ?, ?, FALSE, ?, ?, ?, ?, ?)',
+                [full_name, username, email, hashedPassword, role, sponsor_id || 'SYSTEM', phone || null, otp, otpExpiry]
+            );
+        }
 
         // 6. Send Professional Welcome Email with OTP
         console.log('Attempting to send OTP to:', email);
-        await sendEmail({
-            email,
-            subject: 'Authorization Key - Trade Crypto Protocol',
-            template: 'WELCOME_OTP',
-            name: full_name,
-            otp
-        });
+        try {
+            await sendEmail({
+                email,
+                subject: 'Authorization Key - Trade Crypto Protocol',
+                template: 'WELCOME_OTP',
+                name: full_name,
+                otp
+            });
+        } catch (mailError) {
+            console.error('Email delivery failed during registration:', mailError);
+            // We still return 500, but the user record is now updated/ready for a retry or manual verification
+            throw mailError;
+        }
 
         res.status(201).json({
             message: 'Registration successful. Verification code sent to your email.',
