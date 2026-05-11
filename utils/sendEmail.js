@@ -3,7 +3,8 @@ require('dotenv').config();
 
 const sendEmail = async (options) => {
     const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-    const API_KEY = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : '';
+    // Remove any accidental quotes or whitespace
+    const API_KEY = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim().replace(/^["']|["']$/g, '') : '';
 
     if (!API_KEY) {
         throw new Error('Brevo API Key (SMTP_PASS) is missing in environment variables');
