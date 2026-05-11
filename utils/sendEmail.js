@@ -1,82 +1,41 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 require('dotenv').config();
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT),
-    secure: parseInt(process.env.SMTP_PORT) === 465, // Only true for 465
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-    tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
-    },
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 30000,
-    debug: true, // Enable debug output
-    logger: true  // Log to console
-});
-
-const commonStyles = `
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #050706;
-    color: #ffffff;
-    padding: 40px;
-    border-radius: 24px;
-    border: 1px solid rgba(201, 162, 39, 0.2);
-    max-width: 600px;
-    margin: 20px auto;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-`;
-
-const headerStyle = `
-    text-align: center;
-    margin-bottom: 40px;
-`;
-
-const otpBoxStyle = `
-    background: linear-gradient(135deg, rgba(201, 162, 39, 0.1) 0%, rgba(201, 162, 39, 0.05) 100%);
-    padding: 40px;
-    border-radius: 20px;
-    border: 1px solid rgba(201, 162, 39, 0.3);
-    text-align: center;
-    margin: 30px 0;
-`;
-
-const otpTextStyle = `
-    font-size: 48px;
-    font-weight: 800;
-    color: #c9a227;
-    letter-spacing: 12px;
-    margin: 0;
-    text-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
-`;
-
-const footerStyle = `
-    margin-top: 40px;
-    text-align: center;
-    border-top: 1px solid rgba(201, 162, 39, 0.1);
-    padding-top: 30px;
-`;
-
-const buttonStyle = `
-    display: inline-block;
-    padding: 16px 32px;
-    background: linear-gradient(135deg, #c9a227 0%, #a3811c 100%);
-    color: #000000;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 12px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-size: 14px;
-    margin: 20px 0;
-`;
-
 const sendEmail = async (options) => {
+    const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+    const API_KEY = process.env.SMTP_PASS;
+
+    const data = {
+        sender: {
+            name: process.env.FROM_NAME || 'Trade Crypto',
+            email: process.env.FROM_EMAIL || 's.k.81@outlook.de'
+        },
+        to: [{
+            email: options.email,
+            name: options.name || 'User'
+        }],
+        subject: options.subject,
+        htmlContent: '' // Will be set below
+    };
+
+    const commonStyles = `
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #050706;
+        color: #ffffff;
+        padding: 40px;
+        border-radius: 24px;
+        border: 1px solid rgba(201, 162, 39, 0.2);
+        max-width: 600px;
+        margin: 20px auto;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    `;
+
+    const headerStyle = `text-align: center; margin-bottom: 40px;`;
+    const otpBoxStyle = `background: linear-gradient(135deg, rgba(201, 162, 39, 0.1) 0%, rgba(201, 162, 39, 0.05) 100%); padding: 40px; border-radius: 20px; border: 1px solid rgba(201, 162, 39, 0.3); text-align: center; margin: 30px 0;`;
+    const otpTextStyle = `font-size: 48px; font-weight: 800; color: #c9a227; letter-spacing: 12px; margin: 0; text-shadow: 0 0 20px rgba(201, 162, 39, 0.3);`;
+    const footerStyle = `margin-top: 40px; text-align: center; border-top: 1px solid rgba(201, 162, 39, 0.1); padding-top: 30px;`;
+    const buttonStyle = `display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #c9a227 0%, #a3811c 100%); color: #000000; text-decoration: none; font-weight: bold; border-radius: 12px; text-transform: uppercase; letter-spacing: 2px; font-size: 14px; margin: 20px 0;`;
+
     let content = '';
 
     switch (options.template) {
@@ -124,7 +83,7 @@ const sendEmail = async (options) => {
                     <h1 style="color: #00ff88; text-transform: uppercase; letter-spacing: 4px; font-size: 28px;">Security Update</h1>
                 </div>
                 <div style="background-color: rgba(255,255,255,0.02); padding: 30px; border-radius: 16px; text-align: center;">
-                    <div style="width: 60px; hieght: 60px; background: rgba(0, 255, 136, 0.1); border-radius: 50%; display: inline-block; padding: 20px; margin-bottom: 20px;">
+                    <div style="width: 60px; height: 60px; background: rgba(0, 255, 136, 0.1); border-radius: 50%; display: inline-block; padding: 20px; margin-bottom: 20px;">
                         <span style="font-size: 30px;">🛡️</span>
                     </div>
                     <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 15px;">Password Successfully Reset</h2>
@@ -140,7 +99,7 @@ const sendEmail = async (options) => {
             content = options.html || `<p>${options.message}</p>`;
     }
 
-    const html = `
+    data.htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -166,20 +125,19 @@ const sendEmail = async (options) => {
         </html>
     `;
 
-    const mailOptions = {
-        from: `"${process.env.FROM_NAME || 'Trade Crypto'}" <${process.env.FROM_EMAIL || process.env.SMTP_USER}>`,
-        to: options.email,
-        subject: options.subject,
-        html: html,
-        replyTo: process.env.FROM_EMAIL || process.env.SMTP_USER,
-    };
-
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent successfully:', info.messageId);
-        return info;
+        console.log('Attempting to send email via Brevo API...');
+        const response = await axios.post(BREVO_API_URL, data, {
+            headers: {
+                'api-key': API_KEY,
+                'Content-Type': 'application/json',
+                'accept': 'application/json'
+            }
+        });
+        console.log('Email sent successfully via API:', response.data.messageId);
+        return response.data;
     } catch (error) {
-        console.error('Email delivery failed:', error);
+        console.error('Email delivery failed via API:', error.response?.data || error.message);
         throw error;
     }
 };
